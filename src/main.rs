@@ -1,19 +1,23 @@
+use clap::{App, Arg};
 use std::fs;
-use clap::{Arg, App};
 
 fn main() {
     let matches = App::new("File Extension List")
-                          .version("0.1.0")
-                          .author("Michael Madden")
-                          .about("Lists files by extension")
-                          .arg(Arg::with_name("directory")
-                               .help("Sets the directory to list files")
-                               .index(1))
-                          .arg(Arg::with_name("all")
-                               .short('a')
-                               .long("all")
-                               .help("Include hidden files"))
-                          .get_matches();
+        .version("0.1.0")
+        .author("Michael Madden")
+        .about("Lists files by extension")
+        .arg(
+            Arg::with_name("directory")
+                .help("Sets the directory to list files")
+                .index(1),
+        )
+        .arg(
+            Arg::with_name("all")
+                .short('a')
+                .long("all")
+                .help("Include hidden files"),
+        )
+        .get_matches();
 
     let directory = matches.value_of("directory").unwrap_or(".");
     let include_hidden = matches.is_present("all");
