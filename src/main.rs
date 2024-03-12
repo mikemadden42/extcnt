@@ -1,24 +1,24 @@
-use std::env;
 use std::fs;
+use clap::{Arg, App};
 
 fn main() {
-    let mut include_hidden = false;
-    let mut args = env::args().skip(1); // Skip the first argument, which is the program name
+    let matches = App::new("File Extension List")
+                          .version("1.0")
+                          .author("Your Name")
+                          .about("Lists files by extension")
+                          .arg(Arg::with_name("directory")
+                               .help("Sets the directory to list files")
+                               .index(1))
+                          .arg(Arg::with_name("all")
+                               .short('a')
+                               .long("all")
+                               .help("Include hidden files"))
+                          .get_matches();
 
-    // Check if the --all flag is provided
-    if let Some(arg) = args.next() {
-        if arg == "--all" {
-            include_hidden = true;
-        } else {
-            // If it's not --all, assume it's a directory and process it
-            let directory = arg;
-            process_directory(&directory, include_hidden);
-            return;
-        }
-    }
+    let directory = matches.value_of("directory").unwrap_or(".");
+    let include_hidden = matches.is_present("all");
 
-    // If no directory is provided, process the current directory
-    process_directory(".", include_hidden);
+    process_directory(directory, include_hidden);
 }
 
 fn process_directory(directory: &str, include_hidden: bool) {
