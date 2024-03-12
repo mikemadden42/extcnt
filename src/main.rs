@@ -1,8 +1,27 @@
+use std::env;
 use std::fs;
 
 fn main() {
-    let directory = ".";
+    let mut include_hidden = false;
+    let mut args = env::args().skip(1); // Skip the first argument, which is the program name
 
+    // Check if the --all flag is provided
+    if let Some(arg) = args.next() {
+        if arg == "--all" {
+            include_hidden = true;
+        } else {
+            // If it's not --all, assume it's a directory and process it
+            let directory = arg;
+            process_directory(&directory, include_hidden);
+            return;
+        }
+    }
+
+    // If no directory is provided, process the current directory
+    process_directory(".", include_hidden);
+}
+
+fn process_directory(directory: &str, include_hidden: bool) {
     let paths = fs::read_dir(directory)
         .unwrap()
         .map(|res| res.map(|entry| entry.path()))
@@ -12,11 +31,13 @@ fn main() {
     let mut files_by_extension = std::collections::BTreeMap::new();
 
     for path in paths {
-        // Skip hidden files
-        if let Some(file_name) = path.file_name() {
-            if let Some(name) = file_name.to_str() {
-                if name.starts_with('.') {
-                    continue;
+        // Skip hidden files if the flag is not provided
+        if !include_hidden {
+            if let Some(file_name) = path.file_name() {
+                if let Some(name) = file_name.to_str() {
+                    if name.starts_with('.') {
+                        continue;
+                    }
                 }
             }
         }
