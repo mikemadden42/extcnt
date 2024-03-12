@@ -12,6 +12,15 @@ fn main() {
     let mut files_by_extension = std::collections::BTreeMap::new();
 
     for path in paths {
+        // Skip hidden files
+        if let Some(file_name) = path.file_name() {
+            if let Some(name) = file_name.to_str() {
+                if name.starts_with('.') {
+                    continue;
+                }
+            }
+        }
+
         if path.is_file() {
             let extension = match path.extension() {
                 Some(os_str) => os_str.to_str().unwrap_or(""),
