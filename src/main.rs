@@ -1,28 +1,22 @@
-use clap::{App, Arg};
+use clap::Parser;
 use std::fs;
 
 fn main() {
-    let matches = App::new("File Extension List")
-        .version("0.1.0")
-        .author("Michael Madden")
-        .about("Lists files by extension")
-        .arg(
-            Arg::with_name("directory")
-                .help("Sets the directory to list files")
-                .index(1),
-        )
-        .arg(
-            Arg::with_name("all")
-                .short('a')
-                .long("all")
-                .help("Include hidden files"),
-        )
-        .get_matches();
+    #[derive(Parser, Debug)]
+    #[command(author, version, about, long_about = None)]
+    struct Args {
+        #[arg(short, long, default_value = ".")]
+        directory: Option<String>,
 
-    let directory = matches.value_of("directory").unwrap_or(".");
-    let include_hidden = matches.is_present("all");
+        #[arg(short, long)]
+        is_hidden: Option<bool>,
+    }
 
-    process_directory(directory, include_hidden);
+    let args = Args::parse();
+    process_directory(
+        &args.directory.unwrap_or_default(),
+        args.is_hidden.unwrap_or_default(),
+    );
 }
 
 fn process_directory(directory: &str, include_hidden: bool) {
