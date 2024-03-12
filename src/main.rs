@@ -13,18 +13,22 @@ fn main() {
     }
 
     let args = Args::parse();
-    process_directory(
+    if let Err(err) = process_directory(
         &args.directory.unwrap_or_default(),
         args.is_hidden.unwrap_or_default(),
-    );
+    ) {
+        eprintln!("Error: {err}");
+    }
 }
 
-fn process_directory(directory: &str, include_hidden: bool) {
-    let paths = fs::read_dir(directory)
-        .unwrap()
-        .map(|res| res.map(|entry| entry.path()))
-        .collect::<Result<Vec<_>, _>>()
-        .unwrap();
+fn process_directory(directory: &str, include_hidden: bool) -> Result<(), std::io::Error> {
+    let paths = match fs::read_dir(directory) {
+        Ok(paths) => paths,
+        Err(err) => return Err(err),
+    }
+    .filter_map(std::result::Result::ok)
+    .map(|entry| entry.path())
+    .collect::<Vec<_>>();
 
     let mut files_by_extension = std::collections::BTreeMap::new();
 
@@ -63,4 +67,6 @@ fn process_directory(directory: &str, include_hidden: bool) {
         }
         println!();
     }
+
+    Ok(())
 }
