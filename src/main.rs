@@ -26,10 +26,12 @@ fn main() {
                 Some(os_str) => os_str.to_str().unwrap_or(""),
                 None => "",
             };
+            // Use PathBuf's file_name() method to get the file name without './' prefix
+            let file_name = path.file_name().unwrap().to_str().unwrap().to_owned();
             files_by_extension
                 .entry(extension.to_owned())
                 .or_insert(Vec::new())
-                .push(path.to_str().unwrap().to_owned());
+                .push(file_name);
         }
     }
 
