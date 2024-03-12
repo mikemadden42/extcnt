@@ -3,8 +3,8 @@ use clap::{Arg, App};
 
 fn main() {
     let matches = App::new("File Extension List")
-                          .version("1.0")
-                          .author("Your Name")
+                          .version("0.1.0")
+                          .author("Michael Madden")
                           .about("Lists files by extension")
                           .arg(Arg::with_name("directory")
                                .help("Sets the directory to list files")
