@@ -26,7 +26,7 @@ fn process_directory(directory: &str, include_hidden: bool) -> Result<(), std::i
         Ok(paths) => paths,
         Err(err) => return Err(err),
     }
-    .filter_map(std::result::Result::ok)
+    .filter_map(Result::ok)
     .map(|entry| entry.path())
     .collect::<Vec<_>>();
 
@@ -49,7 +49,7 @@ fn process_directory(directory: &str, include_hidden: bool) -> Result<(), std::i
                 Some(os_str) => os_str.to_str().unwrap_or(""),
                 None => "",
             };
-            // Use PathBuf's file_name() method to get the file name without './' prefix
+            // Use PathBuf from file_name() method to get the file name without './' prefix
             let file_name = path.file_name().unwrap().to_str().unwrap().to_owned();
             files_by_extension
                 .entry(extension.to_owned())
