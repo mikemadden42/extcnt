@@ -22,13 +22,10 @@ fn main() {
 }
 
 fn process_directory(directory: &str, include_hidden: bool) -> Result<(), std::io::Error> {
-    let paths = match fs::read_dir(directory) {
-        Ok(paths) => paths,
-        Err(err) => return Err(err),
-    }
-    .filter_map(Result::ok)
-    .map(|entry| entry.path())
-    .collect::<Vec<_>>();
+    let paths = fs::read_dir(directory)?
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .collect::<Vec<_>>();
 
     let mut files_by_extension = std::collections::BTreeMap::new();
 
