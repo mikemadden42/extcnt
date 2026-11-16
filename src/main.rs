@@ -2,7 +2,7 @@ use clap::Parser;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::fs;
-use std::io;
+use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -35,13 +35,21 @@ struct Args {
 
 fn main() -> ExitCode {
     let args = Args::parse();
-    match group_by_extension(&args.directory, args.all, args.ignore_case) {
-        Ok(groups) => {
-            print_groups(&groups, args.count_only);
-            ExitCode::SUCCESS
-        }
+    let groups = match group_by_extension(&args.directory, args.all, args.ignore_case) {
+        Ok(groups) => groups,
         Err(err) => {
             eprintln!("Error: {}: {err}", args.directory.display());
+            return ExitCode::FAILURE;
+        }
+    };
+
+    let mut out = BufWriter::new(io::stdout().lock());
+    match print_groups(&mut out, &groups, args.count_only).and_then(|()| out.flush()) {
+        Ok(()) => ExitCode::SUCCESS,
+        // The reader went away (e.g. `extcnt | head`); stop quietly like other CLI tools.
+        Err(err) if err.kind() == io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
+        Err(err) => {
+            eprintln!("Error: writing output: {err}");
             ExitCode::FAILURE
         }
     }
@@ -102,20 +110,21 @@ fn group_by_extension(
     Ok(groups)
 }
 
-fn print_groups(groups: &Groups, count_only: bool) {
+fn print_groups(out: &mut impl Write, groups: &Groups, count_only: bool) -> io::Result<()> {
     for (extension, files) in groups {
         let label = extension.as_deref().unwrap_or(NO_EXTENSION_LABEL);
         if count_only {
-            println!("{label}: {}", files.len());
+            writeln!(out, "{label}: {}", files.len())?;
             continue;
         }
 
-        println!("{label} ({}):", files.len());
+        writeln!(out, "{label} ({}):", files.len())?;
         for file in files {
-            println!("- {file}");
+            writeln!(out, "- {file}")?;
         }
-        println!();
+        writeln!(out)?;
     }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -205,6 +214,44 @@ mod tests {
     fn missing_directory_is_an_error() {
         let dir = TempDir::new("missing");
         assert!(group_by_extension(&dir.0.join("nope"), false, false).is_err());
+    }
+
+    #[test]
+    fn prints_groups_and_counts() {
+        let groups = Groups::from([
+            group(None, &["Makefile"]),
+            group(Some("txt"), &["a.txt", "b.txt"]),
+        ]);
+
+        let mut out = Vec::new();
+        print_groups(&mut out, &groups, false).unwrap();
+        assert_eq!(
+            String::from_utf8(out).unwrap(),
+            "(none) (1):\n- Makefile\n\ntxt (2):\n- a.txt\n- b.txt\n\n"
+        );
+
+        let mut out = Vec::new();
+        print_groups(&mut out, &groups, true).unwrap();
+        assert_eq!(String::from_utf8(out).unwrap(), "(none): 1\ntxt: 2\n");
+    }
+
+    #[test]
+    fn write_errors_are_returned() {
+        struct BrokenPipe;
+
+        impl Write for BrokenPipe {
+            fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+                Err(io::ErrorKind::BrokenPipe.into())
+            }
+
+            fn flush(&mut self) -> io::Result<()> {
+                Ok(())
+            }
+        }
+
+        let groups = Groups::from([group(Some("txt"), &["a.txt"])]);
+        let err = print_groups(&mut BrokenPipe, &groups, false).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::BrokenPipe);
     }
 
     // macOS and Windows filesystems reject names that are not valid UTF-8.
